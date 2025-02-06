@@ -1,5 +1,6 @@
 require "sinatra"
 require "sinatra/reloader"
+require "active_support/all"
 
 get ("/howdy") do
   "hello"
@@ -36,14 +37,23 @@ get ("/payment/new") do
 end
 
 get ("/payment/results") do
-  @apr_user = (params.fetch("user_apr", "0").to_f / 100).to_fs(:percentage)
-  @apr = params.fetch("user_apr").to_f / 100 / 12
-  @user_years_user = params.fetch("user_years").to_i
-  @user_years = params.fetch("user_years").to_i * 12
-  @user_pv= params.fetch("user_pv").to_f.to_fs(:currency)
-  @the_numerator = @apr * @user_pv
-  @the_dem = 1 - (1+@apr)**(-@user_years)
-  @result = @the_numerator/@the_dem
+  apr = params.fetch("user_apr").to_f
+  years = params.fetch("user_years").to_i
+  principle= params.fetch("user_pv").to_f
+
+  r = (apr/100)/12
+  n = years*12
+
+  if r==0
+    payment=principle.to_f
+  else
+    payment = (r*principle) / (1-(1+r)**-n)
+  end
+
+  @formatted_apr = apr.to_fs(:percentage, { :precision => 4 } )
+  @formatted_years = years
+  @formatted_principle = principle.to_fs(:currency, { :precision => 2 })
+  @formatted_payment = payment.to_fs(:currency, { :precision => 2 })
   erb(:payment_results)
 end
 
